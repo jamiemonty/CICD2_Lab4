@@ -26,3 +26,4 @@ def add_user(user: User):
 @app.get("/hello")
 def hello():
     return {"message": "Hello World!"}
+
