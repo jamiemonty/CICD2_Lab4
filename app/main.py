@@ -40,9 +40,13 @@ def delete_user(user_id: int, deleted_user: User):
 
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with ID {user_id} not found")
 
-@app.get("/hello")
-def hello():
-    return {"message": "Hello World!"}
+@app.get("/health")
+def health_status():
+    return {"status":"OK"}
+
+#@app.get("/hello")
+#def hello():
+#    return {"message": "Hello World!"}
 
 #Where do validation errors (422) come from in FastAPI + Pydantic?
 #Validation errors come from pydantic automatically validating the request body sent, if variable is different it causes an error.
