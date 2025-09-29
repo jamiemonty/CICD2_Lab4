@@ -43,7 +43,7 @@ def delete_user(user_id: int):
 
 @app.get("/health")
 def health_status():
-    return {"status":"OK"}
+    return {"status":"ok"}
 
 #@app.get("/hello")
 #def hello():
