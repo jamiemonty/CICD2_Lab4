@@ -55,3 +55,18 @@ def test_update_user_not_found_404(client):
     r = client.put("/api/users/67", json=update_data)
     assert r.status_code == 404
     assert "not found" in r.json()["detail"].lower()
+
+    #Why install from requirements.txt instead of ad‑hoc pip installs?
+    #Doing it this way ensures that all dependencies are installed in the correct versions as specified in the requirements.txt file.
+    #This avoids potential version conflicts and makes the environment reproducible.
+
+    #What does coverage tell you that “all tests passed” doesn’t?
+    #Coverage provides insight into how much of the codebase is actually being tested.
+
+    #Why assert error paths (422/404/409) as well as happy paths?
+    #Asserting error paths ensures that the application handles invalid inputs.
+
+    #What signal does a green GitHub Action send to teammates?
+    #A green GitHub Action indicates that the code has passed all tests and checks.
+
+
