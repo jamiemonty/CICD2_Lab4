@@ -12,6 +12,8 @@ from .schemas import (
     ProjectCreate, ProjectRead,
     ProjectReadWithOwner, ProjectCreateForUser
 )
+from pydantic import BaseModel
+from typing import Optional
 
 app = FastAPI()
 Base.metadata.create_all(bind=engine)
@@ -31,6 +33,15 @@ def commit_or_rollback(db: Session, error_msg: str):
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail=error_msg)
+
+class UserPatch(BaseModel):
+    name: Optional[NameStr] = None
+    email: Optional[EmailStr] = None
+
+class ProjectPatch(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    owner_id: Optional[int] = None
 
 
 @app.get("/health")
@@ -85,6 +96,40 @@ def get_project_with_owner(project_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Project not found")
     return proj
 
+# PUT (full replace) for Project
+@app.put("/api/projects/{project_id}", response_model=ProjectRead)
+def replace_project(project_id: int, payload: ProjectCreate, db: Session = Depends(get_db)):
+    proj = db.get(ProjectDB, project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+    # ensure owner exists
+    owner = db.get(UserDB, payload.owner_id)
+    if not owner:
+        raise HTTPException(status_code=404, detail="User (owner) not found")
+    proj.name = payload.name
+    proj.description = payload.description
+    proj.owner_id = payload.owner_id
+    commit_or_rollback(db, "Project update failed")
+    db.refresh(proj)
+    return proj
+
+# PATCH (partial update) for Project
+@app.patch("/api/projects/{project_id}", response_model=ProjectRead)
+def patch_project(project_id: int, payload: ProjectPatch, db: Session = Depends(get_db)):
+    proj = db.get(ProjectDB, project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+    data = payload.model_dump(exclude_unset=True)
+    if "owner_id" in data:
+        owner = db.get(UserDB, data["owner_id"])
+        if not owner:
+            raise HTTPException(status_code=404, detail="User (owner) not found")
+    for k, v in data.items():
+        setattr(proj, k, v)
+    commit_or_rollback(db, "Project update failed")
+    db.refresh(proj)
+    return proj
+
 
 # Nested Routes
 @app.get("/api/users/{user_id}/projects", response_model=list[ProjectRead])
@@ -128,6 +173,32 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.get(UserDB, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+# PUT (full replace) for User
+@app.put("/api/users/{user_id}", response_model=UserRead)
+def replace_user(user_id: int, payload: UserCreate, db: Session = Depends(get_db)):
+    user = db.get(UserDB, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    for k, v in payload.model_dump().items():
+        setattr(user, k, v)
+    commit_or_rollback(db, "User update failed")
+    db.refresh(user)
+    return user
+
+
+# PATCH (partial update) for User
+@app.patch("/api/users/{user_id}", response_model=UserRead)
+def patch_user(user_id: int, payload: UserPatch, db: Session = Depends(get_db)):
+    user = db.get(UserDB, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    data = payload.model_dump(exclude_unset=True)
+    for k, v in data.items():
+        setattr(user, k, v)
+    commit_or_rollback(db, "User update failed")
+    db.refresh(user)
     return user
 
 
